@@ -116,17 +116,13 @@ public class EntryPoint {
 	//0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_1111_1111;
 	//0000_0001_0000_0000_0001_0000_0000_0001_0000_0001_1110_0000_0001_0000_0000_0000
 	
-	//72075190550401024
+	//0000_0001_0000_0000_0001_0000_0000_0001_0000_0001_1110_0000_0001_0000_0000_0000
+	//0001_1110_0000_0001_0000_0000_0000
+	
 	//72075190550401024
 	
 	private static long pack(short x, short y, short width, short height, boolean rotate, int index){
-		long l =  ((rotate ? 0x1 : 0x0) & 0x1) << 12;
-		l = (l | (x & 0xFFF)) << 12;
-		l = (l | (y & 0xFFF)) << 12;
-		l = (l | (width & 0xFFF)) << 12;
-		l = (l | (height & 0xFFF)) << 8;
-		l = (l | index & 0xFF);									
-		return l;
+		return ((((((((((long)(((rotate ? 0x1 : 0x0) & 0x1) << 12) | (x & 0xFFF)) << 12) | (y & 0xFFF)) << 12) | (width & 0xFFF)) << 12) | (height & 0xFFF)) << 8) | index & 0xFF);     
 	}
 	
 	/** finds all files with .atlas in a given folder and its subfolders */
