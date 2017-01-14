@@ -16,7 +16,7 @@ public class EntryPoint {
 		
 		ArrayList<File> assets = findAllAssets(args[0]);
 		
-		ArrayList<Long> cache = new ArrayList<Long>();
+		ArrayList<String> cache = new ArrayList<String>();
 		ArrayList<String> filesIndex = new ArrayList<String>();
 		
 		for(int i = 0; i < assets.size(); i++){
@@ -27,18 +27,19 @@ public class EntryPoint {
 		write(args[0].concat("_packed.txt"), cache, filesIndex);
 	}
 	
-	private static void write(String output, ArrayList<Long> cache, ArrayList<String> filesIndex){
+	private static void write(String output, ArrayList<String> cache, ArrayList<String> filesIndex){
 		PrintWriter writer = null;
 		try {
 			writer = new PrintWriter(output);
 			for(int i = 0 ; i < cache.size(); i++)
-				writer.print(cache.get(i) + "" + System.lineSeparator());
+				if(i < cache.size() - 1) writer.print(cache.get(i) + System.lineSeparator());
+				else writer.print(cache.get(i));
 			writer.close();
 			
 			writer = new PrintWriter(output.concat("_index.txt"));
 			for(int i = 0 ; i < filesIndex.size(); i++)
-				writer.print(filesIndex.get(i) + System.lineSeparator());
-			
+				if(i < filesIndex.size() - 1) writer.print(filesIndex.get(i) + System.lineSeparator());
+				else writer.print(filesIndex.get(i));
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} finally {
@@ -46,7 +47,7 @@ public class EntryPoint {
 		}
 	}
 	
-	private static void convert(int index, File file, ArrayList<Long> cache, ArrayList<String> filesIndex){
+	private static void convert(int index, File file, ArrayList<String> cache, ArrayList<String> filesIndex){
 		Scanner scanner = null;
 		try {
 			
@@ -54,6 +55,7 @@ public class EntryPoint {
 			
 			short x = 0, y = 0, width = 0, height = 0;
 			boolean rotate = false;
+			String name = null;
 			
 			filesIndex.add(scanner.nextLine());
 			
@@ -65,6 +67,9 @@ public class EntryPoint {
 				String line = scanner.nextLine();
 				
 				switch(k){
+				case 0:
+					name = line;
+					break;
 				case 1: //rotate
 					rotate = line.contains("true");
 					break;
@@ -83,7 +88,7 @@ public class EntryPoint {
 				k++;
 				if(k >= 7){
 					k = 0;
-					cache.add(pack(x, y, width, height, rotate, index));
+					cache.add(name + "," + pack(x, y, width, height, rotate, index));
 				}			
 			}
 			
