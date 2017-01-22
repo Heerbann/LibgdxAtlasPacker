@@ -3,8 +3,12 @@ package com.heerbann.packer;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Scanner;
 
@@ -17,70 +21,109 @@ public class EntryPoint {
 		ArrayList<String> filesIndex = new ArrayList<String>();
 		for (int i = 0; i < assets.size(); i++) {
 			// System.out.println(assets.get(i));
-			convert(i, assets.get(i), cache, filesIndex);
+			//FIXME multiple files will not work
+			convert(assets.get(i), cache);
 		}
-		write(args[0].concat("_packed.txt"), cache, filesIndex);
+		
+		 HashMap<String, Long> map = new HashMap<String, Long>(60000);
+		
+		for(int i = 0; i < cache.size(); i++){
+			String line = cache.get(i);
+			if(line.contains(";")) continue;
+			String[] t = line.split(",");
+			map.put(t[0], Long.parseLong(t[1]));
+		}
+		
+		serializeHashmap(args[0], map);
+		write(args[0].concat("/packed.osh"), cache, filesIndex);
+	}
+	
+	private static void serializeHashmap(String path, HashMap<String, Long> map){
+		File f = new File(path.concat("/hashMap.ser"));
+		try {
+			FileOutputStream outFile = new FileOutputStream(f);
+			ObjectOutputStream out = new ObjectOutputStream(outFile);
+			out.writeObject(map);
+         out.close();
+         outFile.close();
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private static void write (String output, ArrayList<String> cache, ArrayList<String> filesIndex) {
 		PrintWriter writer = null;
 		try {
 			writer = new PrintWriter(output);
+			for (int i = 0; i < filesIndex.size(); i++)
+				writer.print(filesIndex.get(i) + System.lineSeparator());
+			
 			for (int i = 0; i < cache.size(); i++)
 				if (i < cache.size() - 1)
 					writer.print(cache.get(i) + System.lineSeparator());
 				else
 					writer.print(cache.get(i));
-			writer.close();
-			writer = new PrintWriter(output.concat("_index.txt"));
-			for (int i = 0; i < filesIndex.size(); i++)
-				if (i < filesIndex.size() - 1)
-					writer.print(filesIndex.get(i) + System.lineSeparator());
-				else
-					writer.print(filesIndex.get(i));
+			writer.close();		
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} finally {
 			if (writer != null) writer.close();
 		}
 	}
-
-	private static void convert (int index, File file, ArrayList<String> cache, ArrayList<String> filesIndex) {
+	
+	private static void convert (File file, ArrayList<String> cache) {
 		Scanner scanner = null;
 		try {
 			scanner = new Scanner(file);
-			short x = 0, y = 0, width = 0, height = 0;
+			short x = 0, y = 0, width = 0, height = 0, offSetX = 0, offsetY = 0, index = -1;
 			boolean rotate = false;
 			String name = null;
-			filesIndex.add(scanner.nextLine());
-			for (int i = 1; i < 5; i++)
-				scanner.nextLine();
-			int k = 0;
-			while (scanner.hasNext()) {
-				String line = scanner.nextLine();
-				switch (k) {
-				case 0:
-					name = line;
-					break;
-				case 1: // rotate
-					rotate = line.contains("true");
-					break;
-				case 2: // xy
-					String[] l1 = line.replaceAll("xy: ", "").replaceAll(" ", "").split(",");
+			boolean newFile = false;
+			int i = 0, k = 0;
+			while(true){
+				if(!scanner.hasNextLine()) break;
+				cache.add(k++, scanner.nextLine() + ";");
+				cache.add(k++, scanner.nextLine().replaceAll("size: ", "").replaceAll(" ", "") + ";");
+				for (int j = 1; j < 4; j++)				
+					scanner.nextLine();
+			 
+				while (true) {
+					if(!scanner.hasNextLine()) break;
+					String fileNameS = scanner.nextLine();
+					if(fileNameS.trim().matches("")){
+						newFile = true;
+						break;
+					}
+					String rotateS = scanner.nextLine();
+					String xyS = scanner.nextLine();
+					String sizeS = scanner.nextLine();
+					String origS = scanner.nextLine();
+					String offsetS = scanner.nextLine();
+					String indexS = scanner.nextLine();
+	
+					// rotate
+					//rotate = line.contains("true");
+					// xy
+					String[] l1 = xyS.replaceAll("xy: ", "").replaceAll(" ", "").split(",");
 					x = Short.parseShort(l1[0]);
 					y = Short.parseShort(l1[1]);
-					break;
-				case 3: // size
-					String[] l2 = line.replaceAll("size: ", "").replaceAll(" ", "").split(",");
+					// size
+					String[] l2 = sizeS.replaceAll("size: ", "").replaceAll(" ", "").split(",");
 					width = Short.parseShort(l2[0]);
 					height = Short.parseShort(l2[1]);
-					break;
+					//offset
+					String[] l3 = offsetS.replaceAll("offset: ", "").replaceAll(" ", "").split(",");
+					offSetX = Short.parseShort(l3[0]);
+					offsetY = Short.parseShort(l3[1]);
+					//index
+					index = Short.parseShort(indexS.replaceAll("index: ", "").trim());
+	
+					cache.add(fileNameS + (index != -1 ? "." + index : "") + "," + pack((short)(x + offSetX), (short)(y + offsetY), width, height, rotate, k++));
+	
 				}
-				k++;
-				if (k >= 7) {
-					k = 0;
-					cache.add(name + "," + pack(x, y, width, height, rotate, index));
-				}
+				i++;
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -108,7 +151,7 @@ public class EntryPoint {
 				File[] newFiles = f.listFiles();
 				for (int i = 0; i < newFiles.length; i++)
 					toLoad.addLast(newFiles[i]);
-			} else if (f.getName().contains(".atlas")) assets.add(f);
+			} else if (f.getName().contains(".osh")) assets.add(f);
 		}
 		return assets;
 	}
