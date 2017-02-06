@@ -77,6 +77,7 @@ public class EntryPoint {
 		Scanner scanner = null;
 		try {
 			scanner = new Scanner(file);
+			byte tiles = 0;
 			short x = 0, y = 0, width = 0, height = 0, offSetX = 0, offsetY = 0, index = -1;
 			boolean rotate = false;
 			String name = null;
@@ -119,8 +120,10 @@ public class EntryPoint {
 					offsetY = Short.parseShort(l3[1]);
 					//index
 					index = Short.parseShort(indexS.replaceAll("index: ", "").trim());
+					
+					tiles = (byte)((width - width%30)/30);
 	
-					cache.add(fileNameS + (index != -1 ? "." + index : "") + "," + pack((short)(x + offSetX), (short)(y + offsetY), width, height, rotate, k++));
+					cache.add(fileNameS + (index != -1 ? "." + index : "") + "," + pack((short)(x + offSetX), (short)(y + offsetY), width, height, tiles, i));
 	
 				}
 				i++;
@@ -132,9 +135,11 @@ public class EntryPoint {
 		}
 	}
 
-	// [0000 000r] [xxxx xxxx] [xxxx yyyy] [yyyy yyyy] [wwww wwww] [wwww hhhh] [hhhh hhhh] [iiii iiii]
-	private static long pack (short x, short y, short width, short height, boolean rotate, int index) {
-		return ((((((((((long)(((rotate ? 0x1 : 0x0) & 0x1) << 12) | (x & 0xFFF)) << 12) | (y & 0xFFF)) << 12)
+	// 0000 0001 1000 0110 0001 0001 0110 1001 0000 0001 1110 0000 0001 0000 0000 0000
+	// 0000 0001 1000 0110 0001 0000 1010 0001 0000 0001 1110 0000 0001 0000 0000 0000
+	// [tttt tttt] [xxxx xxxx] [xxxx yyyy] [yyyy yyyy] [wwww wwww] [wwww hhhh] [hhhh hhhh] [iiii iiii]
+	private static long pack (short x, short y, short width, short height, byte tiles, int index) {
+		return ((((((((((long)((0l | tiles) <<12) | (x & 0xFFF)) << 12) | (y & 0xFFF)) << 12)
 			| (width & 0xFFF)) << 12) | (height & 0xFFF)) << 8) | index & 0xFF);
 	}
 
